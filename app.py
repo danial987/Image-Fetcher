@@ -104,7 +104,7 @@ if uploaded_file is not None:
                     # Update progress bar and status text
                     st.session_state.progress = idx + 1
                     progress_bar.progress(st.session_state.progress / total_rows)
-                    status_text.text(f"Processing {idx + 1}/{total_rows}")
+                    status_text.text(f"Processing {st.session_state.progress}/{total_rows}")
                     
                     # Delay to avoid hitting request limits
                     time.sleep(1)  # Add a short delay between requests
