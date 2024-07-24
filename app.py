@@ -61,23 +61,21 @@ if uploaded_file is not None:
         )
         
         if selected_columns:
-            # Display start and stop buttons in a column layout
-            col1, col2 = st.columns([1, 1])
-            start_button = col1.button("Start Fetching Images")
-            stop_button = col2.button("Stop Fetching Images")
-            
-            # Display progress bar and status text
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            start_time = time.time()
-            elapsed_time = 0.0
-            total_rows = len(input_csv)
-            
-            # Create a new DataFrame to store results
-            output_df = input_csv.copy()
-            output_df['ImageLink'] = None
+            # Display start button
+            start_button = st.button("Start Fetching Images")
             
             if start_button:
+                # Display progress bar and status text
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                start_time = time.time()
+                elapsed_time = 0.0
+                total_rows = len(input_csv)
+                
+                # Create a new DataFrame to store results
+                output_df = input_csv.copy()
+                output_df['ImageLink'] = None
+
                 for idx, row in output_df.iterrows():
                     search_query = ' '.join(str(row[col]) for col in selected_columns)
                     
@@ -97,38 +95,34 @@ if uploaded_file is not None:
                     
                     # Delay to avoid hitting request limits
                     time.sleep(1)  # Add a short delay between requests
-                    
-                    # Check if stop button is pressed
-                    if stop_button:
-                        break
                 
                 # Calculate elapsed time
                 elapsed_time = time.time() - start_time
             
-            # Count products with and without images
-            products_with_images = output_df['ImageLink'].notna().sum()
-            products_without_images = output_df['ImageLink'].isna().sum()
-            
-            st.success("Image links have been added to the dataset.")
-            
-            # Show results including elapsed time
-            st.write("### Results")
-            st.write(f"Products with images: {products_with_images}")
-            st.write(f"Products without images: {products_without_images}")
-            st.write(f"Time elapsed: {elapsed_time:.2f} seconds")
-            st.write("#### Preview of the modified dataset:")
-            st.write(output_df)
-            
-            # Convert DataFrame to CSV for download
-            output_csv = output_df.to_csv(index=False)
-            st.download_button(
-                label="Download CSV with Image Links",
-                data=output_csv,
-                file_name='products_with_images.csv',
-                mime='text/csv'
-            )
-            
-            st.write("Upload another CSV file to process a new dataset.")
+                # Count products with and without images
+                products_with_images = output_df['ImageLink'].notna().sum()
+                products_without_images = output_df['ImageLink'].isna().sum()
+                
+                st.success("Image links have been added to the dataset.")
+                
+                # Show results including elapsed time
+                st.write("### Results")
+                st.write(f"Products with images: {products_with_images}")
+                st.write(f"Products without images: {products_without_images}")
+                st.write(f"Time elapsed: {elapsed_time:.2f} seconds")
+                st.write("#### Preview of the modified dataset:")
+                st.write(output_df)
+                
+                # Convert DataFrame to CSV for download
+                output_csv = output_df.to_csv(index=False)
+                st.download_button(
+                    label="Download CSV with Image Links",
+                    data=output_csv,
+                    file_name='products_with_images.csv',
+                    mime='text/csv'
+                )
+                
+                st.write("Upload another CSV file to process a new dataset.")
     else:
         st.warning("Image links have already been added to the dataset. Download the CSV file or upload a new one to start again.")
 else:
