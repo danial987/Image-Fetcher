@@ -32,16 +32,6 @@ def fetch_image_link(search_query, retries=3, backoff=1.0):
             backoff *= 2
     return None
 
-# Initialize session state
-if 'output_df' not in st.session_state:
-    st.session_state.output_df = None
-if 'progress' not in st.session_state:
-    st.session_state.progress = 0
-if 'start_time' not in st.session_state:
-    st.session_state.start_time = None
-if 'elapsed_time' not in st.session_state:
-    st.session_state.elapsed_time = 0
-
 # Streamlit interface
 st.title('Product Image Link Fetcher')
 
@@ -71,25 +61,24 @@ if uploaded_file is not None:
         )
         
         if selected_columns:
-            # Display start button
-            start_button = st.button("Start Fetching Images")
+            # Display start and stop buttons in a column layout
+            col1, col2 = st.columns([1, 1])
+            start_button = col1.button("Start Fetching Images")
+            stop_button = col2.button("Stop Fetching Images")
             
-            if start_button or st.session_state.output_df is not None:
-                if start_button:
-                    # Initialize session state variables
-                    st.session_state.output_df = input_csv.copy()
-                    st.session_state.output_df['ImageLink'] = None
-                    st.session_state.progress = 0
-                    st.session_state.start_time = time.time()
-                    st.session_state.elapsed_time = 0
-
-                # Display progress bar and status text
-                progress_bar = st.progress(st.session_state.progress / len(st.session_state.output_df))
-                status_text = st.empty()
-                total_rows = len(st.session_state.output_df)
-                
-                for idx in range(st.session_state.progress, total_rows):
-                    row = st.session_state.output_df.iloc[idx]
+            # Display progress bar and status text
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            start_time = time.time()
+            elapsed_time = 0.0
+            total_rows = len(input_csv)
+            
+            # Create a new DataFrame to store results
+            output_df = input_csv.copy()
+            output_df['ImageLink'] = None
+            
+            if start_button:
+                for idx, row in output_df.iterrows():
                     search_query = ' '.join(str(row[col]) for col in selected_columns)
                     
                     # Fetch image link
@@ -99,46 +88,47 @@ if uploaded_file is not None:
                     if not image_link:
                         image_link = fetch_image_link(f"{search_query} image")
                     
-                    st.session_state.output_df.at[idx, 'ImageLink'] = image_link
+                    output_df.at[idx, 'ImageLink'] = image_link
                     
                     # Update progress bar and status text
-                    st.session_state.progress = idx + 1
-                    progress_bar.progress(st.session_state.progress / total_rows)
-                    status_text.text(f"Processing {st.session_state.progress}/{total_rows}")
+                    progress = (idx + 1) / total_rows
+                    progress_bar.progress(progress)
+                    status_text.text(f"Processing {idx + 1}/{total_rows}")
                     
                     # Delay to avoid hitting request limits
                     time.sleep(1)  # Add a short delay between requests
                     
-                    # Save state and exit the loop to prevent timeout
-                    st.experimental_rerun()
+                    # Check if stop button is pressed
+                    if stop_button:
+                        break
                 
                 # Calculate elapsed time
-                st.session_state.elapsed_time = time.time() - st.session_state.start_time
+                elapsed_time = time.time() - start_time
             
-                # Count products with and without images
-                products_with_images = st.session_state.output_df['ImageLink'].notna().sum()
-                products_without_images = st.session_state.output_df['ImageLink'].isna().sum()
-                
-                st.success("Image links have been added to the dataset.")
-                
-                # Show results including elapsed time
-                st.write("### Results")
-                st.write(f"Products with images: {products_with_images}")
-                st.write(f"Products without images: {products_without_images}")
-                st.write(f"Time elapsed: {st.session_state.elapsed_time:.2f} seconds")
-                st.write("#### Preview of the modified dataset:")
-                st.write(st.session_state.output_df)
-                
-                # Convert DataFrame to CSV for download
-                output_csv = st.session_state.output_df.to_csv(index=False)
-                st.download_button(
-                    label="Download CSV with Image Links",
-                    data=output_csv,
-                    file_name='products_with_images.csv',
-                    mime='text/csv'
-                )
-                
-                st.write("Upload another CSV file to process a new dataset.")
+            # Count products with and without images
+            products_with_images = output_df['ImageLink'].notna().sum()
+            products_without_images = output_df['ImageLink'].isna().sum()
+            
+            st.success("Image links have been added to the dataset.")
+            
+            # Show results including elapsed time
+            st.write("### Results")
+            st.write(f"Products with images: {products_with_images}")
+            st.write(f"Products without images: {products_without_images}")
+            st.write(f"Time elapsed: {elapsed_time:.2f} seconds")
+            st.write("#### Preview of the modified dataset:")
+            st.write(output_df)
+            
+            # Convert DataFrame to CSV for download
+            output_csv = output_df.to_csv(index=False)
+            st.download_button(
+                label="Download CSV with Image Links",
+                data=output_csv,
+                file_name='products_with_images.csv',
+                mime='text/csv'
+            )
+            
+            st.write("Upload another CSV file to process a new dataset.")
     else:
         st.warning("Image links have already been added to the dataset. Download the CSV file or upload a new one to start again.")
 else:
