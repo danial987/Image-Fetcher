@@ -84,7 +84,7 @@ if uploaded_file is not None:
                     st.session_state.elapsed_time = 0
 
                 # Display progress bar and status text
-                progress_bar = st.progress(st.session_state.progress)
+                progress_bar = st.progress(st.session_state.progress / len(st.session_state.output_df))
                 status_text = st.empty()
                 total_rows = len(st.session_state.output_df)
                 
@@ -102,8 +102,8 @@ if uploaded_file is not None:
                     st.session_state.output_df.at[idx, 'ImageLink'] = image_link
                     
                     # Update progress bar and status text
-                    st.session_state.progress = (idx + 1) / total_rows
-                    progress_bar.progress(st.session_state.progress)
+                    st.session_state.progress = idx + 1
+                    progress_bar.progress(st.session_state.progress / total_rows)
                     status_text.text(f"Processing {idx + 1}/{total_rows}")
                     
                     # Delay to avoid hitting request limits
